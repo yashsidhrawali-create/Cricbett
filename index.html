@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>CricBet • Cricket Betting App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: #f6f7f8; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; font-size: 24px; display: inline-flex; align-items: center; justify-content: center; }
+        .fill-icon { font-variation-settings: 'FILL' 1; }
+        
+        .bg-primary { background-color: #2b8cee !important; }
+        .text-primary { color: #2b8cee !important; }
+        .border-primary { border-color: #2b8cee !important; }
+        .bg-primary\/10 { background-color: rgba(43, 140, 238, 0.1) !important; }
+        .bg-primary\/5 { background-color: rgba(43, 140, 238, 0.05) !important; }
+        .bg-background-light { background-color: #f6f7f8 !important; }
+        
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .screen { display: none; }
+        .screen.active { display: block; }
+        .bottom-nav a.active-nav .nav-icon { font-variation-settings: 'FILL' 1; color: #2b8cee !important; }
+        .bottom-nav a.active-nav .nav-label { color: #2b8cee !important; font-weight: 700; }
+        
+        .loading-spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #2b8cee;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        .match-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            background: #f6f7f8;
+            z-index: 9999;
+            overflow-y: auto;
+            display: none;
+        }
+        
+        .match-modal.active { display: block; }
+        
+        .match-modal-content {
+            width: 100%;
+            min-height: 100%;
+            background: #f6f7f8;
+        }
+        
+        .modal-header {
+            position: sticky;
+            top: 0;
+            background: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px;
+            border-bottom: 1px solid #e2e8f0;
+            z-index: 10;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+        
+        .modal-header button {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 40px;
+            width: 40px;
+            height: 40px;
+            transition: background 0.2s;
+        }
+        
+        .modal-header button:hover {
+            background: #f1f5f9;
+        }
+        
+        .modal-header h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin: 0;
+            flex: 1;
+            text-align: center;
+        }
+        
+        .modal-body {
+            padding: 16px;
+            padding-bottom: 80px;
+        }
+        
+        body.modal-open { overflow: hidden; }
+        
+        .match-card {
+            background: white;
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border: 1px solid #e2e8f0;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .match-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .match-teams {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            text-align: center;
+            margin-bottom: 16px;
+        }
+        
+        .team-info {
+            flex: 1;
+        }
+        
+        .team-name {
+            font-weight: 700;
+            font-size: 1rem;
+            margin-bottom: 4px;
+        }
+        
+        .team-score {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #1e293b;
+        }
+        
+        .team-overs {
+            font-size: 0.7rem;
+            color: #64748b;
+        }
+        
+        .vs-divider {
+            font-weight: 700;
+            color: #94a3b8;
+            padding: 0 12px;
+        }
+        
+        .match-odds-row {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        
+        .odds-box {
+            flex: 1;
+            background: #f8fafc;
+            border-radius: 10px;
+            padding: 10px;
+            text-align: center;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .odds-team-name {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 6px;
+        }
+        
+        .odds-value {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #2b8cee;
+        }
+        
+        .lock-icon {
+            font-size: 0.9rem;
+        }
+        .lock-icon.locked {
+            color: #ef4444;
+        }
+        
+        .bet-button {
+            width: 100%;
+            padding: 12px;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            background: #2b8cee;
+            color: white;
+        }
+        
+        .bet-button:disabled {
+            background: #cbd5e1;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        
+        .betting-locked-text {
+            text-align: center;
+            color: #ef4444;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-top: 8px;
+        }
+        
+        .team-odds-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px;
+            background: #f8fafc;
+            border-radius: 10px;
+            border: 1px solid #e2e8f0;
+            margin-bottom: 12px;
+        }
+        
+        .odds-button {
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+            cursor: pointer;
+            background-color: rgba(165, 216, 255, 0.4);
+            color: #00529b;
+            border: none;
+        }
+        
+        .odds-button.disabled, .odds-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background-color: #e2e8f0;
+            color: #94a3b8;
+        }
+        
+        .badge {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .badge-success { background: #dcfce7; color: #16a34a; }
+        .badge-warning { background: #fef9c3; color: #ca8a04; }
+        .badge-danger { background: #fee2e2; color: #dc2626; }
+        .badge-info { background: #dbeafe; color: #2563eb; }
+        
+        .qr-container {
+            background: white;
+            padding: 20px;
+            border-radius: 16px;
+            display: inline-block;
+        }
+        
+        .session-market-card {
+            background: white;
+            border-radius: 12px;
+            padding: 12px;
+            border: 1px solid #e2e8f0;
+            margin-bottom: 10px;
+            transition: all 0.2s;
+        }
+        
+        .bet-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        }
+        
+        .bet-modal.active { display: flex; }
+        
+        .bet-modal-content {
+            background: white;
+            border-radius: 24px;
+            padding: 24px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .custom-popup {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            border-radius: 12px;
+            padding: 12px 20px;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
+            z-index: 10001;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            animation: slideDown 0.3s ease-out;
+            border-left: 4px solid;
+        }
+        .custom-popup.success { border-left-color: #10b981; }
+        .custom-popup.error { border-left-color: #ef4444; }
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+        
+        .login-message {
+            margin-top: 12px;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 14px;
+            text-align: center;
+            display: none;
+        }
+        .login-message.show {
+            display: block;
+        }
+        .login-message.success {
+            background-color: #dcfce7;
+            color: #16a34a;
+            border: 1px solid #bbf7d0;
+        }
+        .login-message.error {
+            background-color: #fee2e2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+        }
+        
+        .match-status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        .match-status-live {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+        .match-status-upcoming {
+            background: #dbeafe;
+            color: #2563eb;
+        }
+    </style>
+</head>
+<body>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyAYxfpjgf0_-TycKA8GCulRYfqj5sZez-0",
+        authDomain: "prolo-opinion.firebaseapp.com",
+        databaseURL: "https://prolo-opinion-default-rtdb.firebaseio.com",
+        projectId: "prolo-opinion",
+        storageBucket: "prolo-opinion.firebasestorage.app",
+        messagingSenderId: "629040620716",
+        appId: "1:629040620716:web:c01bf3995d3f74f6ed6b09"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const database = firebase.database();
+</script>
+
+<div id="loadingOverlay" class="fixed inset-0 bg-black/50 z-[100] hidden items-center justify-center">
+    <div class="bg-white p-6 rounded-xl flex flex-col items-center"><div class="loading-spinner mb-3"></div><p class="text-sm font-medium">Loading...</p></div>
+</div>
+
+<div class="relative max-w-md mx-auto w-full bg-background-light min-h-screen overflow-x-hidden shadow-xl">
+
+    <!-- LOGIN SCREEN -->
+    <div id="login-screen" class="screen active">
+        <div class="flex flex-col min-h-screen bg-background-light">
+            <div class="flex items-center bg-white p-4 pb-2 justify-between">
+                <div class="text-primary flex size-12 shrink-0 items-center justify-center">
+                    <span class="material-symbols-outlined text-4xl text-primary">sports_cricket</span>
+                </div>
+                <h2 class="text-slate-900 text-xl font-bold flex-1 text-center pr-12">CricBet</h2>
+            </div>
+            <div class="px-4">
+                <div class="bg-cover bg-center flex flex-col justify-end overflow-hidden bg-primary/10 rounded-xl min-h-[200px] relative" style='background-image: linear-gradient(180deg, rgba(43, 140, 238, 0.2) 0%, rgba(16, 25, 34, 0.8) 100%), url("https://lh3.googleusercontent.com/aida-public/AB6AXuD0lRH7VT2HTYPOeI0H5meFeanuHiMYkR8rVmaUTiVshUhYX5ccdyYY_tsCKW1PwO66yoI4gjuTsM9Dse0TmwBE-9yM39YD0B3gS4lTtvUQai1IToW7FpdFeiYqH9aKu797Mued_K6FsVp4btBcRwdI4HiqNRebdpRoUpgmU9QLMNhCYs8fpeFukz0m3PyYuFKcYrnz8vUYTXdeqXWxrfFLvtZoVU6MO1V2T6dn1V-pjds8Nj6fQwuCjalt2rxKuSk-fNRFBkm1XrE");'>
+                    <div class="flex flex-col p-6">
+                        <p class="text-white tracking-light text-[28px] font-bold leading-tight">Cricket Betting Platform</p>
+                        <p class="text-white/80 text-sm mt-1">Experience the thrill of every boundary in ₹</p>
+                    </div>
+                </div>
+            </div>
+            <div class="px-4 mt-6">
+                <div class="flex gap-4 border-b">
+                    <button id="loginTabBtn" class="flex-1 text-center pb-3 text-primary border-b-2 border-primary font-bold">Login</button>
+                    <button id="registerTabBtn" class="flex-1 text-center pb-3 text-slate-400 font-bold">Register</button>
+                </div>
+            </div>
+            <div id="loginForm" class="px-4 py-6">
+                <div class="bg-white rounded-xl shadow-lg p-6 border border-primary/10">
+                    <h3 class="text-2xl font-bold mb-6">Login to Account</h3>
+                    <div class="space-y-5">
+                        <div><label class="text-sm font-medium">Email</label><input id="loginEmail" class="w-full px-4 py-3.5 bg-background-light border rounded-lg" placeholder="Enter your email" type="email"></div>
+                        <div><label class="text-sm font-medium">Password</label><input id="loginPassword" class="w-full px-4 py-3.5 bg-background-light border rounded-lg" type="password"></div>
+                        <button id="loginButton" class="w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-lg">Login to CricBet</button>
+                        <div id="loginMessage" class="login-message"></div>
+                    </div>
+                </div>
+            </div>
+            <div id="registerForm" class="px-4 py-6 hidden">
+                <div class="bg-white rounded-xl shadow-lg p-6 border border-primary/10">
+                    <h3 class="text-2xl font-bold mb-6">Create Account</h3>
+                    <div class="space-y-4">
+                        <div><label class="text-sm font-medium">Full Name</label><input id="regName" class="w-full px-4 py-3.5 bg-background-light border rounded-lg" placeholder="Enter your name"></div>
+                        <div><label class="text-sm font-medium">Email / Mobile</label><input id="regEmail" class="w-full px-4 py-3.5 bg-background-light border rounded-lg" type="email" placeholder="Enter your email"></div>
+                        <div><label class="text-sm font-medium">Password</label><input id="regPassword" class="w-full px-4 py-3.5 bg-background-light border rounded-lg" type="password" placeholder="Min 6 characters"></div>
+                        <div><label class="text-sm font-medium">Confirm Password</label><input id="regConfirmPassword" class="w-full px-4 py-3.5 bg-background-light border rounded-lg" type="password"></div>
+                        <button id="registerButton" class="w-full bg-primary text-white font-bold py-4 rounded-lg mt-4">Register</button>
+                    </div>
+                </div>
+            </div>
+            <div class="p-6 text-center bg-white border-t border-slate-100 text-xs text-slate-400">Official Cricket Betting Partner • 18+</div>
+        </div>
+    </div>
+
+    <!-- HOME SCREEN -->
+    <div id="home-screen" class="screen">
+        <div class="relative flex min-h-screen w-full flex-col bg-background-light pb-24">
+            <header class="flex items-center justify-between p-4 bg-white sticky top-0 z-50 shadow-sm">
+                <div class="flex items-center gap-3">
+                    <div class="size-10 rounded-full bg-primary/10 border-2 border-primary/20 overflow-hidden flex items-center justify-center">
+                        <span class="material-symbols-outlined text-primary text-3xl fill-icon">account_circle</span>
+                    </div>
+                    <div>
+                        <p class="text-xs text-slate-500">Welcome back,</p>
+                        <h2 id="homeUserName" class="text-sm font-bold">Loading...</h2>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 bg-primary/10 px-3 py-1.5 rounded-full border border-primary/30">
+                    <span class="material-symbols-outlined text-primary text-lg">account_balance_wallet</span>
+                    <p id="homeWalletBalance" class="text-primary text-sm font-bold">₹0</p>
+                </div>
+            </header>
+            
+            <section class="mt-2 px-4">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="text-lg font-bold flex items-center gap-2"><span class="size-2 bg-red-500 rounded-full animate-pulse"></span>Live Matches</h3>
+                </div>
+                <div id="liveMatchesContainer" class="space-y-3"></div>
+            </section>
+            
+            <section class="mt-6 px-4">
+                <div class="flex items-center justify-between mb-4"><h3 class="text-lg font-bold">Upcoming Matches</h3><span class="material-symbols-outlined text-slate-400">calendar_month</span></div>
+                <div id="upcomingMatchesContainer" class="space-y-3"></div>
+            </section>
+            
+            <div class="mx-4 mt-6 p-4 rounded-xl bg-gradient-to-r from-primary to-blue-600 text-white relative overflow-hidden">
+                <div class="relative z-10"><h4 class="text-lg font-bold">100% Deposit Bonus</h4><p class="text-sm opacity-90 mb-3">Up to ₹10,000 on your first deposit.</p><button class="bg-white text-primary px-4 py-1.5 rounded-full text-xs font-bold uppercase">Claim Now</button></div>
+                <div class="absolute right-[-10px] bottom-[-10px] opacity-20"><span class="material-symbols-outlined text-8xl">sports_cricket</span></div>
+            </div>
+            
+            <div class="fixed bottom-0 left-0 right-0 max-w-md mx-auto z-50 bg-white/95 backdrop-blur-md border-t px-4 pb-4 pt-2">
+                <div class="flex gap-2 bottom-nav">
+                    <a class="flex flex-1 flex-col items-center gap-1 text-primary active-nav" href="#" data-screen="home-screen">
+                        <span class="material-symbols-outlined nav-icon fill-icon">home</span>
+                        <span class="text-[10px] nav-label font-bold">Home</span>
+                    </a>
+                    <a class="flex flex-1 flex-col items-center gap-1 text-slate-400" href="#" data-screen="mybet-screen">
+                        <span class="material-symbols-outlined nav-icon">confirmation_number</span>
+                        <span class="text-[10px] nav-label">My Bet</span>
+                    </a>
+                    <a class="flex flex-1 flex-col items-center gap-1 text-slate-400" href="#" data-screen="wallet-screen">
+                        <span class="material-symbols-outlined nav-icon">account_balance_wallet</span>
+                        <span class="text-[10px] nav-label">Wallet</span>
+                    </a>
+                    <a class="flex flex-1 flex-col items-center gap-1 text-slate-400" href="#" data-screen="profile-screen">
+                        <span class="material-symbols-outlined nav-icon">person</span>
+                        <span class="text-[10px] nav-label">Profile</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MY BET SCREEN -->
+    <div id="mybet-screen" class="screen">
+        <div class="relative flex min-h-screen flex-col bg-background-light pb-24">
+            <header class="sticky top-0 bg-white/80 backdrop-blur-md p-4 border-b flex items-center">
+                <button class="size-10 flex items-center" onclick="navigateToScreen('home-screen')">
+                    <span class="material-symbols-outlined">arrow_back</span>
+                </button>
+                <h2 class="flex-1 text-center text-lg font-bold">My Bets</h2>
+            </header>
+            <div class="flex px-4 gap-8 border-b">
+                <button id="activeBetsTab" class="flex-1 text-center border-b-2 border-primary text-primary pb-3 text-sm font-bold" onclick="loadMyBets('active')">Active Bets</button>
+                <button id="historyBetsTab" class="flex-1 text-center text-slate-400 pb-3 text-sm font-bold" onclick="loadMyBets('history')">Bet History</button>
+            </div>
+            <div id="betsContainer" class="p-4 space-y-4"></div>
+            <div class="fixed bottom-0 max-w-md w-full bg-white border-t flex justify-around px-4 pb-6 pt-2">
+                <a class="flex flex-col items-center text-slate-400" href="#" onclick="navigateToScreen('home-screen'); return false;"><span class="material-symbols-outlined">home</span><span class="text-[10px]">Home</span></a>
+                <a class="flex flex-col items-center text-primary" href="#" onclick="navigateToScreen('mybet-screen'); loadMyBets('active'); return false;"><span class="material-symbols-outlined fill-icon text-primary">confirmation_number</span><span class="text-[10px] font-bold text-primary">My Bet</span></a>
+                <a class="flex flex-col items-center text-slate-400" href="#" onclick="navigateToScreen('wallet-screen'); loadWalletData(); return false;"><span class="material-symbols-outlined">account_balance_wallet</span><span class="text-[10px]">Wallet</span></a>
+                <a class="flex flex-col items-center text-slate-400" href="#" onclick="navigateToScreen('profile-screen'); loadProfileData(); return false;"><span class="material-symbols-outlined">person</span><span class="text-[10px]">Profile</span></a>
+            </div>
+        </div>
+    </div>
+
+    <!-- WALLET SCREEN -->
+    <div id="wallet-screen" class="screen">
+        <div class="max-w-md mx-auto bg-background-light min-h-screen pb-24">
+            <div class="flex items-center bg-white p-4 border-b">
+                <button onclick="navigateToScreen('home-screen')"><span class="material-symbols-outlined">arrow_back</span></button>
+                <h2 class="flex-1 text-center font-bold">Wallet</h2>
+            </div>
+            <div class="p-4"><div class="bg-primary text-white p-6 rounded-xl"><p class="text-xs opacity-80">Total Balance</p><p id="walletBalanceDisplay" class="text-3xl font-bold">₹0</p></div></div>
+            <div class="px-4 grid grid-cols-2 gap-3">
+                <button onclick="navigateToScreen('deposit-screen')" class="bg-white p-4 rounded-xl text-center border-2 border-green-200 hover:border-green-500"><span class="material-symbols-outlined text-green-600 text-3xl">add_circle</span><p class="text-xs font-bold mt-1">Deposit</p></button>
+                <button onclick="showWithdrawScreen()" class="bg-white p-4 rounded-xl text-center border-2 border-orange-200 hover:border-orange-500"><span class="material-symbols-outlined text-orange-600 text-3xl">payments</span><p class="text-xs font-bold mt-1">Withdraw</p></button>
+            </div>
+            <div class="px-4 mt-6"><h3 class="font-bold mb-3">Recent Transactions</h3><div id="transactionsList" class="space-y-2"></div></div>
+            <div class="fixed bottom-0 max-w-md w-full bg-white border-t flex justify-around px-4 pb-6 pt-2">
+                <a class="flex flex-col items-center text-slate-400" href="#" onclick="navigateToScreen('home-screen'); return false;"><span class="material-symbols-outlined">home</span><span class="text-[10px]">Home</span></a>
+                <a class="flex flex-col items-center text-slate-400" href="#" onclick="navigateToScreen('mybet-screen'); loadMyBets('active'); return false;"><span class="material-symbols-outlined">confirmation_number</span><span class="text-[10px]">My Bet</span></a>
+                <a class="flex flex-col items-center text-primary" href="#" onclick="navigateToScreen('wallet-screen'); loadWalletData(); return false;"><span class="material-symbols-outlined fill-icon text-primary">account_balance_wallet</span><span class="text-[10px] font-bold text-primary">Wallet</span></a>
+                <a class="flex flex-col items-center text-slate-400" href="#" onclick="navigateToScreen('profile-screen'); loadProfileData(); return false;"><span class="material-symbols-outlined">person</span><span class="text-[10px]">Profile</span></a>
+            </div>
+        </div>
+    </div>
+
+    <!-- DEPOSIT SCREEN -->
+    <div id="deposit-screen" class="screen">
+        <div class="relative flex min-h-screen w-full flex-col bg-background-light pb-24">
+            <header class="sticky top-0 z-50 flex items-center bg-white px-4 py-3 shadow-sm border-b">
+                <button class="size-10 flex items-center justify-center rounded-full hover:bg-slate-100" onclick="navigateToScreen('wallet-screen')"><span class="material-symbols-outlined">arrow_back</span></button>
+                <h2 class="flex-1 text-center text-lg font-bold">Deposit Funds</h2><div class="w-10"></div>
+            </header>
+            <main class="flex-1 overflow-y-auto p-4">
+                <div class="bg-white rounded-xl shadow-sm border p-5 mb-4 text-center"><h3 class="text-sm font-bold text-slate-600 mb-3">Scan QR Code to Pay</h3><div class="flex justify-center"><img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi://pay?pa=yashpal1309@fam&pn=CricBet&cu=INR" alt="QR Code" class="qr-container" style="width: 200px; height: 200px;"></div><p class="text-xs text-slate-500 mt-3">Scan with any UPI app</p></div>
+                <div class="bg-white rounded-xl shadow-sm border p-5 mb-4"><div class="flex items-center justify-between mb-3"><h3 class="text-sm font-bold text-slate-600">UPI ID</h3><button onclick="copyUpiId()" class="text-primary text-sm flex items-center gap-1"><span class="material-symbols-outlined text-sm">content_copy</span> Copy</button></div><div class="bg-slate-50 p-3 rounded-lg text-center"><p class="text-lg font-mono font-bold">yashpal1309@fam</p><p class="text-xs text-slate-500 mt-1">Send money to this UPI ID</p></div></div>
+                <div class="bg-white rounded-xl shadow-sm border p-5 mb-4"><h3 class="text-sm font-bold text-slate-600 mb-3">Deposit Amount (₹)</h3><div class="grid grid-cols-4 gap-2 mb-4"><button onclick="setDepositAmount(500)" class="amount-btn py-2 px-3 rounded-lg bg-slate-100 text-slate-700 text-sm font-semibold">₹500</button><button onclick="setDepositAmount(1000)" class="amount-btn py-2 px-3 rounded-lg bg-slate-100 text-slate-700 text-sm font-semibold">₹1,000</button><button onclick="setDepositAmount(2000)" class="amount-btn py-2 px-3 rounded-lg bg-slate-100 text-slate-700 text-sm font-semibold">₹2,000</button><button onclick="setDepositAmount(5000)" class="amount-btn py-2 px-3 rounded-lg bg-slate-100 text-slate-700 text-sm font-semibold">₹5,000</button></div><div><label class="text-sm font-medium text-slate-600 mb-2 block">Custom Amount</label><input type="number" id="depositAmountInput" class="w-full px-4 py-3 border rounded-lg" placeholder="Enter amount" min="100"></div></div>
+                <div class="bg-white rounded-xl shadow-sm border p-5 mb-4"><label class="text-sm font-medium text-slate-600 mb-2 block">UTR / Transaction ID</label><input type="text" id="depositUTRInput" class="w-full px-4 py-3 border rounded-lg" placeholder="Enter UTR/Transaction ID from payment app"></div>
+                <button onclick="submitDepositRequest()" class="w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-lg shadow-lg shadow-primary/30 mb-4">Submit Deposit Request</button>
+                <div class="bg-gradient-to-r from-green-500 to-green-600 rounded-xl p-4 mb-4 text-white text-center"><div class="flex items-center justify-center gap-2 mb-2"><span class="material-symbols-outlined">support_agent</span><span class="font-bold">24/7 Customer Support</span></div><p class="text-sm mb-3">Need help with deposit? Contact us on WhatsApp</p><div class="flex gap-3 justify-center"><a href="https://wa.me/919728414589?text=Hello%20I%20need%20help%20with%20deposit" target="_blank" class="flex-1 bg-white/20 backdrop-blur-sm py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-white/30 transition-all"><span class="material-symbols-outlined text-sm">phone</span><span class="text-sm font-semibold">+91 97284 14589</span></a><a href="https://wa.me/917726926620?text=Hello%20I%20need%20help%20with%20deposit" target="_blank" class="flex-1 bg-white/20 backdrop-blur-sm py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-white/30 transition-all"><span class="material-symbols-outlined text-sm">phone</span><span class="text-sm font-semibold">+91 77269 26620</span></a></div></div>
+                <div id="depositStatusMsg" class="hidden mb-4 p-3 rounded-lg"></div>
+                <div class="bg-white rounded-xl shadow-sm border p-5"><h3 class="text-sm font-bold text-slate-600 mb-3">Deposit History</h3><div id="depositHistoryList" class="space-y-2 max-h-64 overflow-y-auto"></div></div>
+            </main>
+        </div>
+    </div>
+
+    <!-- WITHDRAW SCREEN -->
+    <div id="withdraw-screen" class="screen">
+        <div class="relative flex min-h-screen w-full flex-col bg-background-light pb-24">
+            <header class="sticky top-0 z-50 flex items-center bg-white px-4 py-3 shadow-sm border-b"><button class="size-10 flex items-center justify-center rounded-full hover:bg-slate-100" onclick="navigateToScreen('wallet-screen')"><span class="material-symbols-outlined">arrow_back</span></button><h2 class="flex-1 text-center text-lg font-bold">Withdraw Funds</h2><div class="w-10"></div></header>
+            <main class="flex-1 overflow-y-auto p-4">
+                <div class="bg-primary rounded-xl p-6 text-white mb-4"><p class="text-sm opacity-80">Available Balance</p><p id="withdrawBalanceDisplay" class="text-3xl font-bold">₹0</p></div>
+                <div class="bg-white rounded-xl shadow-sm border p-5 mb-4"><label class="text-sm font-medium text-slate-600 mb-2 block">Withdrawal Amount (₹)</label><input type="number" id="withdrawAmountInput" class="w-full px-4 py-3 border rounded-lg" placeholder="Enter amount" min="200"><p class="text-xs text-slate-500 mt-2">Minimum withdrawal: ₹200</p></div>
+                <div class="bg-white rounded-xl shadow-sm border p-5 mb-4"><label class="text-sm font-medium text-slate-600 mb-2 block">UPI ID</label><input type="text" id="withdrawUpiInput" class="w-full px-4 py-3 border rounded-lg" placeholder="e.g., name@okaxis"></div>
+                <button onclick="submitWithdrawRequest()" class="w-full bg-primary text-white font-bold py-4 rounded-lg mb-4">Submit Withdrawal Request</button>
+                <div class="bg-gradient-to-r from-green-500 to-green-600 rounded-xl p-4 mb-4 text-white text-center"><div class="flex items-center justify-center gap-2 mb-2"><span class="material-symbols-outlined">support_agent</span><span class="font-bold">Withdrawal Support</span></div><p class="text-sm mb-3">Facing issues with withdrawal? Contact us</p><div class="flex gap-3 justify-center"><a href="https://wa.me/919728414589?text=Hello%20I%20need%20help%20with%20withdrawal" target="_blank" class="flex-1 bg-white/20 backdrop-blur-sm py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-white/30 transition-all"><span class="material-symbols-outlined text-sm">phone</span><span class="text-sm font-semibold">+91 97284 14589</span></a><a href="https://wa.me/917726926620?text=Hello%20I%20need%20help%20with%20withdrawal" target="_blank" class="flex-1 bg-white/20 backdrop-blur-sm py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-white/30 transition-all"><span class="material-symbols-outlined text-sm">phone</span><span class="text-sm font-semibold">+91 77269 26620</span></a></div></div>
+                <div id="withdrawStatusMsg" class="hidden mb-4 p-3 rounded-lg"></div>
+                <div class="bg-white rounded-xl shadow-sm border p-5"><h3 class="text-sm font-bold text-slate-600 mb-3">Withdrawal History</h3><div id="withdrawHistoryList" class="space-y-2 max-h-64 overflow-y-auto"></div></div>
+            </main>
+        </div>
+    </div>
+
+    <!-- PROFILE SCREEN -->
+    <div id="profile-screen" class="screen">
+        <div class="max-w-md mx-auto bg-white min-h-screen pb-24">
+            <header class="flex items-center justify-between px-6 py-4 border-b"><button onclick="navigateToScreen('home-screen')"><span class="material-symbols-outlined">arrow_back</span></button><h1 class="text-lg font-bold">Profile</h1><button><span class="material-symbols-outlined">settings</span></button></header>
+            <div class="px-6 py-6 flex gap-5"><div class="size-24 rounded-full border-4 border-primary/20 p-1 bg-primary/10 flex items-center justify-center"><span class="material-symbols-outlined text-5xl text-primary fill-icon">account_circle</span></div><div><h2 id="profileNameDisplay" class="text-xl font-bold">Loading...</h2><p id="profileEmailDisplay" class="text-sm text-slate-500">Loading...</p><div class="flex items-center gap-1 text-primary font-bold mt-1"><span id="profileWalletDisplay" class="text-primary">₹0</span></div></div></div>
+            <div class="px-6"><button onclick="handleLogout()" class="w-full flex items-center gap-3 p-4 bg-red-50 text-red-500 rounded-xl font-bold"><span class="material-symbols-outlined">logout</span> Logout</button></div>
+            <div class="fixed bottom-0 max-w-md w-full bg-white border-t flex justify-around px-4 pb-6 pt-2"><a class="flex flex-col items-center text-slate-400" href="#" onclick="navigateToScreen('home-screen'); return false;"><span class="material-symbols-outlined">home</span><span class="text-[10px]">Home</span></a><a class="flex flex-col items-center text-slate-400" href="#" onclick="navigateToScreen('mybet-screen'); loadMyBets('active'); return false;"><span class="material-symbols-outlined">confirmation_number</span><span class="text-[10px]">My Bet</span></a><a class="flex flex-col items-center text-slate-400" href="#" onclick="navigateToScreen('wallet-screen'); loadWalletData(); return false;"><span class="material-symbols-outlined">account_balance_wallet</span><span class="text-[10px]">Wallet</span></a><a class="flex flex-col items-center text-primary" href="#" onclick="navigateToScreen('profile-screen'); loadProfileData(); return false;"><span class="material-symbols-outlined fill-icon text-primary">person</span><span class="text-[10px] font-bold text-primary">Profile</span></a></div>
+        </div>
+    </div>
+
+    <!-- MODALS -->
+    <div id="matchModal" class="match-modal"><div class="match-modal-content"><div class="modal-header"><button onclick="closeMatchModal()">←</button><h3 id="matchModalTitle">Match Details</h3><button onclick="closeMatchModal()">✖</button></div><div class="modal-body" id="matchModalBody"></div></div></div>
+    <div id="placeBetModal" class="bet-modal"><div class="bet-modal-content"><div class="flex justify-between items-center mb-4"><h3 class="text-xl font-bold">Place Bet</h3><button onclick="closeBetModal()"><span class="material-symbols-outlined">close</span></button></div><div class="bg-slate-50 p-4 rounded-lg mb-4"><p class="text-sm text-slate-500">Match</p><p id="betMatchName" class="font-bold">-</p><div class="flex justify-between mt-2"><div><p class="text-xs text-slate-500">Selection</p><p id="betSelection" class="font-bold text-primary">-</p></div><div><p class="text-xs text-slate-500">Odds</p><p id="betOdds" class="font-bold text-green-600">0.00</p></div></div></div><div class="mb-4"><label class="text-sm font-medium mb-2 block">Enter Stake (₹)</label><input type="number" id="betStakeInput" class="w-full px-4 py-3 border rounded-lg" placeholder="Minimum ₹100" min="100" value="100"><p class="text-xs text-slate-500 mt-1">Available balance: <span id="betBalanceDisplay">₹0</span></p></div><div class="bg-primary/5 p-4 rounded-lg mb-4"><div class="flex justify-between"><span class="text-sm">Potential Return</span><span id="potentialReturnDisplay" class="font-bold text-green-600">₹0</span></div><div class="flex justify-between text-xs text-slate-500 mt-1"><span>Profit</span><span id="potentialProfitDisplay">₹0</span></div></div><button onclick="confirmPlaceBet()" class="w-full bg-primary text-white py-4 rounded-lg font-bold mb-2">Confirm Bet</button><button onclick="closeBetModal()" class="w-full border py-3 rounded-lg font-medium">Cancel</button></div></div>
+</div>
+
+<script>
+    let currentUser = null;
+    let currentMatch = null;
+    let currentBet = null;
+    let matchesData = [];
+    let refreshInterval = null;
+    let selectedDepositAmount = null;
+
+    function showLoading() { const el = document.getElementById('loadingOverlay'); if(el) el.style.display = 'flex'; }
+    function hideLoading() { const el = document.getElementById('loadingOverlay'); if(el) el.style.display = 'none'; }
+    
+    function navigateToScreen(screenId) {
+        const screens = ['login-screen', 'home-screen', 'mybet-screen', 'wallet-screen', 'deposit-screen', 'withdraw-screen', 'profile-screen'];
+        screens.forEach(id => {
+            const screen = document.getElementById(id);
+            if(screen) screen.classList.remove('active');
+        });
+        const targetScreen = document.getElementById(screenId);
+        if(targetScreen) targetScreen.classList.add('active');
+        
+        if(screenId === 'mybet-screen') loadMyBets('active');
+        else if(screenId === 'wallet-screen') { loadWalletData(); loadTransactions(); }
+        else if(screenId === 'profile-screen') loadProfileData();
+        else if(screenId === 'deposit-screen') loadDepositHistory();
+        else if(screenId === 'withdraw-screen') loadWithdrawHistory();
+        
+        updateBottomNav(screenId);
+    }
+    
+    function updateBottomNav(activeScreen) {
+        document.querySelectorAll('.bottom-nav a').forEach(item => {
+            const screen = item.getAttribute('data-screen');
+            if(screen === activeScreen) {
+                item.classList.add('active-nav');
+                const icon = item.querySelector('.material-symbols-outlined');
+                const label = item.querySelector('.nav-label');
+                if(icon) icon.classList.add('fill-icon', 'text-primary');
+                if(label) label.classList.add('text-primary', 'font-bold');
+            } else {
+                item.classList.remove('active-nav');
+                const icon = item.querySelector('.material-symbols-outlined');
+                const label = item.querySelector('.nav-label');
+                if(icon) icon.classList.remove('fill-icon', 'text-primary');
+                if(label) label.classList.remove('text-primary', 'font-bold');
+            }
+        });
+    }
+    
+    function showPopup(message, type) {
+        const popup = document.createElement('div');
+        popup.className = `custom-popup ${type}`;
+        popup.innerHTML = `<span class="popup-icon">${type === 'success' ? '✅' : '❌'}</span><span class="popup-message">${message}</span>`;
+        document.body.appendChild(popup);
+        setTimeout(() => popup.remove(), 3000);
+    }
+    
+    function showLoginMessage(message, type) {
+        const msg = document.getElementById('loginMessage');
+        if(msg) {
+            msg.textContent = message;
+            msg.className = `login-message show ${type}`;
+            setTimeout(() => msg.classList.remove('show'), 3000);
+        }
+    }
+
+    // Initialize sample matches
+    async function initializeSampleMatches() {
+        const matchesRef = database.ref('matches');
+        const snapshot = await matchesRef.once('value');
+        if(!snapshot.exists()) {
+            const sampleMatches = {
+                match1: {
+                    id: 'match1',
+                    teamA: 'Mumbai Indians',
+                    teamB: 'Chennai Super Kings',
+                    status: 'live',
+                    teamAScore: '142/3',
+                    teamAOvers: '15.2',
+                    teamBScore: '98/2',
+                    teamBOvers: '11.0',
+                    odds: { teamA: 1.85, teamB: 2.10 },
+                    currentRR: '9.26',
+                    requiredRR: '10.50',
+                    partnership: '45 (32)',
+                    lastWicket: 'Rohit (32)',
+                    target: '185',
+                    oddsLockTeamA: false,
+                    oddsLockTeamB: false,
+                    match_betting_locked: false,
+                    dateTime: new Date().toISOString()
+                },
+                match2: {
+                    id: 'match2',
+                    teamA: 'Royal Challengers Bangalore',
+                    teamB: 'Kolkata Knight Riders',
+                    status: 'live',
+                    teamAScore: '185/5',
+                    teamAOvers: '18.0',
+                    teamBScore: '45/1',
+                    teamBOvers: '5.0',
+                    odds: { teamA: 1.45, teamB: 2.80 },
+                    currentRR: '10.28',
+                    requiredRR: '9.40',
+                    partnership: '32 (28)',
+                    lastWicket: 'Kohli (78)',
+                    target: '186',
+                    oddsLockTeamA: false,
+                    oddsLockTeamB: false,
+                    match_betting_locked: false,
+                    dateTime: new Date().toISOString()
+                },
+                match3: {
+                    id: 'match3',
+                    teamA: 'Delhi Capitals',
+                    teamB: 'Sunrisers Hyderabad',
+                    status: 'upcoming',
+                    odds: { teamA: 1.95, teamB: 1.90 },
+                    dateTime: new Date(Date.now() + 86400000).toISOString(),
+                    oddsLockTeamA: false,
+                    oddsLockTeamB: false,
+                    match_betting_locked: false
+                },
+                match4: {
+                    id: 'match4',
+                    teamA: 'Punjab Kings',
+                    teamB: 'Rajasthan Royals',
+                    status: 'upcoming',
+                    odds: { teamA: 2.10, teamB: 1.75 },
+                    dateTime: new Date(Date.now() + 172800000).toISOString(),
+                    oddsLockTeamA: false,
+                    oddsLockTeamB: false,
+                    match_betting_locked: false
+                }
+            };
+            await matchesRef.set(sampleMatches);
+        }
+    }
+
+    function loadMatches() {
+        database.ref('matches').on('value', (snapshot) => {
+            const matches = snapshot.val();
+            matchesData = matches ? Object.entries(matches).map(([id, data]) => ({ id, ...data })) : [];
+            displayMatches();
+        });
+    }
+    
+    function displayMatches() {
+        const liveContainer = document.getElementById('liveMatchesContainer');
+        const upcomingContainer = document.getElementById('upcomingMatchesContainer');
+        if(!liveContainer || !upcomingContainer) return;
+        
+        const liveMatches = matchesData.filter(m => m.status === 'live');
+        const upcomingMatches = matchesData.filter(m => m.status === 'upcoming');
+        
+        liveContainer.innerHTML = '';
+        if(liveMatches.length === 0) {
+            liveContainer.innerHTML = '<div class="text-center py-8 text-slate-500 bg-white rounded-xl">No live matches at the moment</div>';
+        } else {
+            liveMatches.forEach(match => {
+                const odds = match.odds || { teamA: 1.85, teamB: 2.10 };
+                liveContainer.innerHTML += `
+                    <div class="match-card" onclick="openMatch('${match.id}')">
+                        <div class="match-teams">
+                            <div class="team-info">
+                                <div class="team-name">${match.teamA}</div>
+                                <div class="team-score">${match.teamAScore || '0/0'}</div>
+                                <div class="team-overs">${match.teamAOvers || '0.0'} overs</div>
+                            </div>
+                            <div class="vs-divider">VS</div>
+                            <div class="team-info">
+                                <div class="team-name">${match.teamB}</div>
+                                <div class="team-score">${match.teamBScore || '0/0'}</div>
+                                <div class="team-overs">${match.teamBOvers || '0.0'} overs</div>
+                            </div>
+                        </div>
+                        <div class="match-odds-row">
+                            <div class="odds-box">
+                                <div class="odds-team-name">${match.teamA}</div>
+                                <div class="odds-value">${odds.teamA}</div>
+                            </div>
+                            <div class="odds-box">
+                                <div class="odds-team-name">${match.teamB}</div>
+                                <div class="odds-value">${odds.teamB}</div>
+                            </div>
+                        </div>
+                        <button class="bet-button" onclick="event.stopPropagation(); openMatchForBetting('${match.id}')">Place Bet</button>
+                    </div>
+                `;
+            });
+        }
+        
+        upcomingContainer.innerHTML = '';
+        if(upcomingMatches.length === 0) {
+            upcomingContainer.innerHTML = '<div class="text-center py-8 text-slate-500 bg-white rounded-xl">No upcoming matches</div>';
+        } else {
+            upcomingMatches.forEach(match => {
+                upcomingContainer.innerHTML += `
+                    <div class="match-card" onclick="openMatch('${match.id}')">
+                        <div class="match-teams">
+                            <div class="team-info"><div class="team-name">${match.teamA}</div></div>
+                            <div class="vs-divider">VS</div>
+                            <div class="team-info"><div class="team-name">${match.teamB}</div></div>
+                        </div>
+                        <div class="text-xs text-slate-500 text-center mt-2">${new Date(match.dateTime).toLocaleString()}</div>
+                        <div class="match-odds-row mt-3">
+                            <div class="odds-box"><div class="odds-team-name">${match.teamA}</div><div class="odds-value">${match.odds?.teamA || 1.85}</div></div>
+                            <div class="odds-box"><div class="odds-team-name">${match.teamB}</div><div class="odds-value">${match.odds?.teamB || 2.10}</div></div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+    }
+    
+    function openMatch(matchId) {
+        const match = matchesData.find(m => m.id === matchId);
+        if(!match) return;
+        currentMatch = match;
+        document.getElementById('matchModalTitle').textContent = `${match.teamA} vs ${match.teamB}`;
+        const odds = match.odds || { teamA: 1.85, teamB: 2.10 };
+        const modalBody = document.getElementById('matchModalBody');
+        modalBody.innerHTML = `
+            <div class="bg-white rounded-xl shadow-sm border overflow-hidden mb-4">
+                <div class="bg-gradient-to-r from-slate-800 to-slate-900 text-white p-5">
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1 text-center">
+                            <p class="text-sm font-medium">${match.teamA}</p>
+                            <p class="text-3xl font-black">${match.teamAScore || '0/0'}</p>
+                            <p class="text-xs opacity-75">${match.teamAOvers || '0.0'} overs</p>
+                        </div>
+                        <div class="px-4"><span class="text-lg font-bold opacity-50">VS</span></div>
+                        <div class="flex-1 text-center">
+                            <p class="text-sm font-medium">${match.teamB}</p>
+                            <p class="text-3xl font-black">${match.teamBScore || '0/0'}</p>
+                            <p class="text-xs opacity-75">${match.teamBOvers || '0.0'} overs</p>
+                        </div>
+                    </div>
+                </div>
+                ${match.target ? `<div class="p-2 bg-slate-100 text-center"><span class="text-sm font-bold">Target: ${match.target}</span></div>` : ''}
+            </div>
+            
+            <h3 class="text-lg font-bold mb-3">Match Odds</h3>
+            <div class="space-y-2 mb-4">
+                <div class="team-odds-container">
+                    <span class="font-bold text-base">${match.teamA}</span>
+                    <button onclick="openBet('${match.teamA}', ${odds.teamA})" class="odds-button">Back @ ${odds.teamA}</button>
+                </div>
+                <div class="team-odds-container">
+                    <span class="font-bold text-base">${match.teamB}</span>
+                    <button onclick="openBet('${match.teamB}', ${odds.teamB})" class="odds-button">Back @ ${odds.teamB}</button>
+                </div>
+            </div>
+            <button onclick="openBet('${match.teamA}', ${odds.teamA})" class="bet-button mb-4">Place Bet on ${match.teamA}</button>
+            <button onclick="openBet('${match.teamB}', ${odds.teamB})" class="bet-button mb-4">Place Bet on ${match.teamB}</button>
+        `;
+        document.getElementById('matchModal').classList.add('active');
+        document.body.classList.add('modal-open');
+    }
+    
+    function openMatchForBetting(matchId) {
+        openMatch(matchId);
+    }
+    
+    function openBet(team, odds) {
+        if(!currentUser) {
+            showPopup('Please login first', 'error');
+            return;
+        }
+        if(!currentMatch) return;
+        
+        currentBet = { 
+            selection: team, 
+            odds: parseFloat(odds), 
+            matchId: currentMatch.id, 
+            matchName: `${currentMatch.teamA} vs ${currentMatch.teamB}`, 
+            type: 'match' 
+        };
+        document.getElementById('betMatchName').textContent = currentBet.matchName;
+        document.getElementById('betSelection').textContent = team;
+        document.getElementById('betOdds').textContent = odds;
+        updateBetPotential();
+        document.getElementById('placeBetModal').classList.add('active');
+    }
+    
+    function updateBetPotential() {
+        const stake = parseFloat(document.getElementById('betStakeInput').value) || 0;
+        const odds = parseFloat(document.getElementById('betOdds').textContent) || 0;
+        const returnAmt = stake * odds;
+        document.getElementById('potentialReturnDisplay').textContent = '₹' + returnAmt.toFixed(0);
+        document.getElementById('potentialProfitDisplay').textContent = '₹' + (returnAmt - stake).toFixed(0);
+    }
+    
+    async function confirmPlaceBet() {
+        if(!currentUser || !currentBet) return;
+        const stake = parseFloat(document.getElementById('betStakeInput').value);
+        if(stake < 100) return showPopup('Minimum stake is ₹100', 'error');
+        showLoading();
+        try {
+            const userSnap = await database.ref('users/' + currentUser.uid).once('value');
+            const user = userSnap.val();
+            if(user.wallet < stake) return showPopup('Insufficient balance', 'error');
+            const betId = database.ref('bets/' + currentUser.uid).push().key;
+            const bet = {
+                id: betId, matchId: currentBet.matchId, matchName: currentBet.matchName,
+                teamSelected: currentBet.selection, odds: currentBet.odds, stake: stake,
+                potentialReturn: stake * currentBet.odds, cashoutStatus: false, betStatus: 'pending',
+                type: currentBet.type, createdAt: new Date().toISOString()
+            };
+            await database.ref('bets/' + currentUser.uid + '/' + betId).set(bet);
+            await database.ref('users/' + currentUser.uid + '/wallet').set(user.wallet - stake);
+            const tId = database.ref('transactions/' + currentUser.uid).push().key;
+            await database.ref('transactions/' + currentUser.uid + '/' + tId).set({ 
+                type: 'bet', amount: -stake, description: `Bet on ${currentBet.selection} @ ${currentBet.odds}`, 
+                date: new Date().toISOString() 
+            });
+            showPopup('Bet placed successfully!', 'success');
+            closeBetModal();
+            await loadUserData();
+        } catch(error) { showPopup(error.message, 'error'); } finally { hideLoading(); }
+    }
+    
+    function closeMatchModal() { 
+        document.getElementById('matchModal').classList.remove('active');
+        document.body.classList.remove('modal-open');
+    }
+    function closeBetModal() { document.getElementById('placeBetModal').classList.remove('active'); }
+    
+    document.getElementById('betStakeInput')?.addEventListener('input', updateBetPotential);
+    
+    // Login Handler
+    async function handleLogin() {
+        const email = document.getElementById('loginEmail').value.trim();
+        const password = document.getElementById('loginPassword').value;
+        if(!email || !password) {
+            showLoginMessage('Please enter both email and password', 'error');
+            return;
+        }
+        showLoading();
+        try {
+            const cred = await auth.signInWithEmailAndPassword(email, password);
+            currentUser = cred.user;
+            await loadUserData();
+            loadMatches();
+            if(refreshInterval) clearInterval(refreshInterval);
+            showLoginMessage('Login Successful!', 'success');
+            setTimeout(() => navigateToScreen('home-screen'), 500);
+        } catch(error) {
+            if(error.code === 'auth/user-not-found') showLoginMessage('No account found with this email', 'error');
+            else if(error.code === 'auth/wrong-password') showLoginMessage('Incorrect password', 'error');
+            else showLoginMessage('Invalid login credentials', 'error');
+        } finally {
+            hideLoading();
+        }
+    }
+    
+    // Register Handler
+    async function handleRegister() {
+        const name = document.getElementById('regName').value.trim();
+        const email = document.getElementById('regEmail').value.trim();
+        const password = document.getElementById('regPassword').value;
+        const confirm = document.getElementById('regConfirmPassword').value;
+        
+        if(!name || !email || !password || !confirm) {
+            showPopup('Please fill all fields', 'error');
+            return;
+        }
+        if(password !== confirm) {
+            showPopup('Passwords do not match', 'error');
+            return;
+        }
+        if(password.length < 6) {
+            showPopup('Password must be at least 6 characters', 'error');
+            return;
+        }
+        showLoading();
+        try {
+            const cred = await auth.createUserWithEmailAndPassword(email, password);
+            await database.ref('users/' + cred.user.uid).set({
+                name, email, wallet: 0, bets: {}, transactions: {}, createdAt: new Date().toISOString()
+            });
+            showPopup('Registration Successful! Please login.', 'success');
+            document.getElementById('loginTabBtn').click();
+            await auth.signOut();
+        } catch(error) {
+            if(error.code === 'auth/email-already-in-use') showPopup('User already registered', 'error');
+            else showPopup('Registration failed: ' + error.message, 'error');
+        } finally {
+            hideLoading();
+        }
+    }
+    
+    async function handleLogout() {
+        if(refreshInterval) clearInterval(refreshInterval);
+        showLoading();
+        try {
+            await auth.signOut();
+            currentUser = null;
+            navigateToScreen('login-screen');
+        } catch(error) {
+            showPopup('Logout failed', 'error');
+        } finally {
+            hideLoading();
+        }
+    }
+    
+    async function loadUserData() {
+        if(!currentUser) return;
+        const snap = await database.ref('users/' + currentUser.uid).once('value');
+        const data = snap.val() || {};
+        const elements = {
+            homeUserName: data.name || 'User',
+            homeWalletBalance: '₹' + (data.wallet || 0).toLocaleString(),
+            profileNameDisplay: data.name || 'User',
+            profileEmailDisplay: data.email || '',
+            profileWalletDisplay: '₹' + (data.wallet || 0).toLocaleString(),
+            walletBalanceDisplay: '₹' + (data.wallet || 0).toLocaleString(),
+            withdrawBalanceDisplay: '₹' + (data.wallet || 0).toLocaleString(),
+            betBalanceDisplay: '₹' + (data.wallet || 0).toLocaleString()
+        };
+        for(const [id, value] of Object.entries(elements)) {
+            const el = document.getElementById(id);
+            if(el) el.textContent = value;
+        }
+    }
+    
+    async function loadMyBets(type) {
+        if(!currentUser) return;
+        const container = document.getElementById('betsContainer');
+        if(!container) return;
+        try {
+            const snap = await database.ref('bets/' + currentUser.uid).once('value');
+            const bets = snap.val() || {};
+            const list = Object.values(bets).filter(b => type === 'active' ? b.betStatus === 'pending' && !b.cashoutStatus : b.betStatus !== 'pending' || b.cashoutStatus).reverse();
+            if(list.length === 0) {
+                container.innerHTML = `<div class="text-center py-8 text-slate-500">No ${type} bets found</div>`;
+                return;
+            }
+            container.innerHTML = list.map(b => `<div class="bg-white p-3 rounded-lg border"><div class="flex justify-between"><span class="text-xs font-bold text-primary">${b.matchName}</span><span class="badge badge-info">${b.betStatus || 'pending'}</span></div><p class="font-bold mt-1">${b.teamSelected} @ ${b.odds}</p><div class="flex justify-between mt-2"><span class="text-xs text-slate-400">Stake: ₹${b.stake}</span><span class="text-xs text-green-600">Return: ₹${b.potentialReturn?.toFixed(0) || 0}</span></div></div>`).join('');
+        } catch(error) {
+            container.innerHTML = '<div class="text-center py-8 text-red-500">Error loading bets</div>';
+        }
+    }
+    
+    async function loadTransactions() {
+        if(!currentUser) return;
+        const container = document.getElementById('transactionsList');
+        if(!container) return;
+        try {
+            const snap = await database.ref('transactions/' + currentUser.uid).once('value');
+            const txns = snap.val() || {};
+            const list = Object.values(txns).reverse().slice(0, 10);
+            if(list.length === 0) {
+                container.innerHTML = '<div class="text-center py-4 text-slate-500">No transactions</div>';
+                return;
+            }
+            container.innerHTML = list.map(t => `<div class="flex justify-between items-center p-3 bg-white rounded-lg border"><div><p class="text-sm">${t.description}</p><p class="text-xs text-slate-400">${new Date(t.date).toLocaleString()}</p></div><p class="font-bold ${t.amount > 0 ? 'text-green-600' : 'text-red-600'}">${t.amount > 0 ? '+' : ''}₹${Math.abs(t.amount).toLocaleString()}</p></div>`).join('');
+        } catch(error) { console.error(error); }
+    }
+    
+    async function loadDepositHistory() {
+        if(!currentUser) return;
+        const container = document.getElementById('depositHistoryList');
+        if(!container) return;
+        container.innerHTML = '<div class="text-center py-4 text-slate-500">No deposit history</div>';
+    }
+    
+    async function loadWithdrawHistory() {
+        if(!currentUser) return;
+        const container = document.getElementById('withdrawHistoryList');
+        if(!container) return;
+        container.innerHTML = '<div class="text-center py-4 text-slate-500">No withdrawal history</div>';
+    }
+    
+    function loadWalletData() { loadUserData(); loadTransactions(); }
+    function loadProfileData() { loadUserData(); }
+    function showWithdrawScreen() { navigateToScreen('withdraw-screen'); loadWithdrawHistory(); }
+    function setDepositAmount(amount) { 
+        selectedDepositAmount = amount;
+        const input = document.getElementById('depositAmountInput');
+        if(input) input.value = '';
+    }
+    async function submitDepositRequest() { showPopup('Deposit request submitted successfully!', 'success'); }
+    async function submitWithdrawRequest() { showPopup('Withdrawal request submitted successfully!', 'success'); }
+    function copyUpiId() { navigator.clipboard.writeText('yashpal1309@fam'); showPopup('UPI ID copied!', 'success'); }
+    
+    document.addEventListener('DOMContentLoaded', async function() {
+        await initializeSampleMatches();
+        
+        document.getElementById('loginButton')?.addEventListener('click', handleLogin);
+        document.getElementById('registerButton')?.addEventListener('click', handleRegister);
+        
+        document.querySelectorAll('.bottom-nav a').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const screenId = this.getAttribute('data-screen');
+                if(screenId) navigateToScreen(screenId);
+            });
+        });
+        
+        const loginTab = document.getElementById('loginTabBtn');
+        const registerTab = document.getElementById('registerTabBtn');
+        if(loginTab && registerTab) {
+            loginTab.addEventListener('click', () => {
+                document.getElementById('loginForm').classList.remove('hidden');
+                document.getElementById('registerForm').classList.add('hidden');
+                loginTab.classList.add('text-primary', 'border-b-2', 'border-primary', 'font-bold');
+                loginTab.classList.remove('text-slate-400');
+                registerTab.classList.remove('text-primary', 'border-b-2', 'border-primary', 'font-bold');
+                registerTab.classList.add('text-slate-400');
+            });
+            registerTab.addEventListener('click', () => {
+                document.getElementById('registerForm').classList.remove('hidden');
+                document.getElementById('loginForm').classList.add('hidden');
+                registerTab.classList.add('text-primary', 'border-b-2', 'border-primary', 'font-bold');
+                registerTab.classList.remove('text-slate-400');
+                loginTab.classList.remove('text-primary', 'border-b-2', 'border-primary', 'font-bold');
+                loginTab.classList.add('text-slate-400');
+            });
+        }
+    });
+    
+    auth.onAuthStateChanged(async (user) => {
+        if(user) {
+            currentUser = user;
+            await loadUserData();
+            loadMatches();
+            navigateToScreen('home-screen');
+        } else {
+            navigateToScreen('login-screen');
+        }
+        hideLoading();
+    });
+</script>
+</body>
+</html>
